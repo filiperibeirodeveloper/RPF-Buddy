@@ -1,0 +1,7 @@
+<config>
+    <openai>
+        <api>
+            <key>${OPENAI_API_KEY}</key>
+        </api>
+    </openai>
+</config>

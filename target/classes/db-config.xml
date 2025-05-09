@@ -1,0 +1,8 @@
+<config>
+    <database>
+        <url>jdbc:postgresql://localhost:5432/rfpbuddy</url>
+        <username>codecadet</username>
+        <password></password>
+        <driver>org.postgresql.Driver</driver>
+    </database>
+</config>

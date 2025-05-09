@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>RFP Buddy - RAG Query</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background-color: #f2f2f2;
+            transition: background-color 0.3s, color 0.3s;
+            margin: 0;
+        }
+
+        .dark-toggle-fixed {
+            position: fixed;
+            top: 10px;
+            right: 20px;
+            background-color: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 999;
+        }
+
+        .dark-mode .dark-toggle-fixed {
+            color: white;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 700px;
+            margin: 80px auto 0 auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .logo {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: green;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: darkgreen;
+        }
+
+        #response {
+            margin-top: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            min-height: 100px;
+            outline: none;
+        }
+
+        .response-actions {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        input[type="file"] {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .dark-mode {
+            background-color: #1e1e1e;
+            color: white;
+        }
+
+        .dark-mode .container {
+            background-color: #2a2a2a;
+        }
+
+        .dark-mode textarea,
+        .dark-mode #response {
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+        }
+
+        .dark-mode button {
+            background-color: green;
+            color: white;
+        }
+
+        .dark-mode button:hover {
+            background-color: darkgreen;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .logo {
+            max-height: 60px;
+            max-width: 200px;
+            object-fit: contain;
+        }
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<!-- Dark Mode Toggle Button (Fixed Top-Right) -->
+<button class="dark-toggle-fixed" onclick="toggleDarkMode()">🌙Dark Mode</button>
+
+<div class="container">
+    <div class="logo-container">
+        <img src="/nagarro.png" alt="Company Logo" class="logo" />
+    </div>
+
+    <textarea id="query" placeholder="Type your RFP-related question here..."></textarea>
+
+
+    <div class="button-row">
+        <button onclick="submitQuery()">Submit</button>
+        <br>
+        <button onclick="uploadAndSubmitPDF()">Upload PDF and Submit</button>
+        <input type="file" id="pdfInput" accept="application/pdf" />
+    </div>
+
+
+    <div id="response" contenteditable="true"></div>
+
+    <div class="response-actions">
+        <button id="copyBtn" onclick="copyResponse()">Copy Response</button>
+        <button id="downloadBtn" onclick="downloadResponsePDF()">Download as PDF</button>
+    </div>
+</div>
+
+<!-- PDF.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<!-- jsPDF library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+    const { jsPDF } = window.jspdf;
+
+    function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+    }
+
+    async function submitQuery(text = null) {
+        const queryText = text || document.getElementById("query").value;
+        const responseBox = document.getElementById("response");
+        responseBox.innerText = "Loading...";
+
+        try {
+            const response = await fetch("http://localhost:8081/api/rag/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    query: queryText,
+                    clientId: 1,
+                }),
+            });
+
+            const data = await response.json();
+            responseBox.innerText = data.output || "No answer returned.";
+        } catch (error) {
+            console.error("Error:", error);
+            responseBox.innerText = "An error occurred while contacting the server.";
+        }
+    }
+
+    async function uploadAndSubmitPDF() {
+        const fileInput = document.getElementById("pdfInput");
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert("Please select a PDF file.");
+            return;
+        }
+
+        const fileReader = new FileReader();
+        fileReader.onload = async function () {
+            const typedarray = new Uint8Array(this.result);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            let fullText = "";
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map((item) => item.str).join(" ");
+                fullText += pageText + "\n";
+            }
+
+            submitQuery(fullText);
+        };
+
+        fileReader.readAsArrayBuffer(file);
+    }
+
+    function copyResponse() {
+        const responseBox = document.getElementById("response");
+        const text = responseBox.innerText;
+
+        navigator.clipboard.writeText(text)
+            .then(() => alert("Copied to clipboard!"))
+            .catch(() => alert("Failed to copy."));
+    }
+
+    function downloadResponsePDF() {
+        const responseText = document.getElementById("response").innerText;
+        const doc = new jsPDF();
+        const lines = doc.splitTextToSize(responseText, 180);
+        doc.text(lines, 10, 10);
+        doc.save("response.pdf");
+    }
+</script>
+</body>
+</html>
