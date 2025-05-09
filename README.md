@@ -46,5 +46,5 @@ This project was developed as part of the **Code For All Bootcamp** final projec
 ---
 
 <div align="center">
-  <p>Developed with ❤️ during Code For All Bootcamp</p>
+  <p>Developed with ❤️ during Code For All_ Bootcamp</p>
 </div> 
