@@ -14,10 +14,6 @@ This project was developed as the Final Project for our group in the **Code For 
 ## 📌 Table of Contents
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
-- [Quick Start](#-quick-start)
-- [Configuration](#-configuration)
-- [API Reference](#-api-reference)
-- [Project Structure](#-project-structure)
 
 ## ✨ Features
 
